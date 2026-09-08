@@ -1,0 +1,9 @@
+# Baseline regime: no injected shocks.
+# Regime configs for issuer_degradation, gateway_congestion, fraud_shift,
+# and temporary_outage are added in Part 3 (DriftSafe / adaptation stages),
+# where they are actually exercised by drift-detection tests.
+name: normal
+issuer_health_delta: {}
+gateway_health_delta: 0.0
+congestion_delta: 0.0
+fraud_rate_multiplier: 1.0

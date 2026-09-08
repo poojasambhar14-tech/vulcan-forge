@@ -1,0 +1,31 @@
+[project]
+name = "vulcan-forge"
+version = "0.2.0"
+description = "Vulcan Forge - diagnosis-driven self-healing infrastructure for payment foundation models (research prototype; retains the prior 'Vulcan 2.0' Mini-Vulcan backbone as its reused foundation)"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.2",
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+    "pandas>=2.0",
+    "scipy>=1.11",
+    "xgboost==3.4.1",
+    "scikit-learn==1.8.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+api = ["fastapi>=0.110", "uvicorn>=0.29", "httpx>=0.27"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: slower tests that train real models across multiple seeds"]
+
+[tool.setuptools]
+# Only `vulcan` is an installable library package. `train/`, `scripts/`,
+# `api/`, and `tests/` are run in-place via `python -m ...` from the repo
+# root (as documented in README.md) and are not meant to be packaged into
+# the wheel; without this, setuptools' flat-layout auto-discovery finds
+# multiple top-level directories (configs/, reports/, artifacts/, etc.) and
+# refuses to build, breaking `pip install -e .`.
+packages = ["vulcan"]

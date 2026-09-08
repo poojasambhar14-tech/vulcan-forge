@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+.next/
+checkpoints/*.pt
+artifacts/runs/*.json
+!artifacts/runs/.gitkeep
+*.egg-info/
+.env
+.DS_Store

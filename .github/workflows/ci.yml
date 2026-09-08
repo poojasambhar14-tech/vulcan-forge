@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test suite (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install (CPU-only torch to keep CI fast and within disk limits)
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev,api]"
+
+      - name: Prepare model checkpoints
+        run: |
+          python -m train.pretrain --config configs/tiny.yaml
+          python -m train.train_baseline_heads --config configs/tiny.yaml
+
+      - name: Fast test suite
+        run: pytest tests/ -q -k "not slow" --ignore=tests/api --durations=10
+
+      - name: API contract tests
+        run: pytest tests/api -q --durations=5
+
+  integrity:
+    name: Data-integrity gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev]"
+
+      # These are the invariants that must never silently regress. They are
+      # split into their own job so a failure here is unmistakable in the
+      # PR checks list rather than buried in a 70-test summary.
+      - name: No temporal leakage (world model + Forge pipeline)
+        run: pytest tests/data/test_no_temporal_leakage.py tests/forge/test_no_forge_leakage.py -q
+
+      - name: Training and certification stay aligned
+        run: pytest tests/forge/test_training_certification_alignment.py -q
+
+      - name: Lifecycle safety (cooldown, rollback parent, atomic promotion)
+        run: pytest tests/forge/test_lifecycle_safety.py -q
+
+      - name: Closed-loop and continuous operation
+        run: pytest tests/forge/test_closed_loop.py tests/forge/test_continuous_lifecycle.py -q
+
+      - name: Autonomous trigger
+        run: pytest tests/forge/test_autonomous_trigger.py -q
+
+      - name: Runtime rollback restores weights and refuses corrupted checkpoints
+        run: pytest tests/forge/test_runtime_rollback.py -q
+
+  slow:
+    name: Slow integration suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev,api]"
+      - name: Prepare model checkpoints
+        run: |
+          python -m train.pretrain --config configs/tiny.yaml
+          python -m train.train_baseline_heads --config configs/tiny.yaml
+
+      - name: Slow tests
+        run: pytest tests/ -q -m slow --durations=10

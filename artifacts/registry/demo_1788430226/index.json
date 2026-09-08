@@ -1,0 +1,76 @@
+[
+  {
+    "version": 1,
+    "utc_timestamp": "2026-09-03T10:10:26Z",
+    "checkpoint_path": "artifacts/registry/demo_1788430226/champion_v1.pt",
+    "checkpoint_sha256": "279e4166f2f8ae122f76bbe9808c722675035794ebfb69590426467a01db5d8b",
+    "promotion_manifest": {
+      "version_label": "V1",
+      "role": "initial_champion",
+      "note": "baseline champion registered before monitoring so later promotions have a rollback parent"
+    },
+    "rolled_back": false
+  },
+  {
+    "version": 2,
+    "utc_timestamp": "2026-09-03T10:11:29Z",
+    "checkpoint_path": "artifacts/registry/demo_1788430226/champion_v2.pt",
+    "checkpoint_sha256": "3627b8c09a4160a04f9ccfa3a7d0f80c30c52830f6f0db5825aff939b255eb17",
+    "promotion_manifest": {
+      "version_label": "V4",
+      "round": 3,
+      "criteria": [
+        {
+          "name": "recent_performance",
+          "passed": true,
+          "value": 0.0,
+          "threshold": -0.02,
+          "detail": ""
+        },
+        {
+          "name": "historical_retention",
+          "passed": true,
+          "value": -0.002,
+          "threshold": -0.03,
+          "detail": ""
+        },
+        {
+          "name": "weak_region_recovery",
+          "passed": true,
+          "value": 0.0,
+          "threshold": 0.0,
+          "detail": ""
+        },
+        {
+          "name": "calibration",
+          "passed": true,
+          "value": 0.0417,
+          "threshold": 0.05,
+          "detail": ""
+        },
+        {
+          "name": "failure_memory",
+          "passed": true,
+          "value": 1.0,
+          "threshold": 1.0,
+          "detail": ""
+        },
+        {
+          "name": "redteam",
+          "passed": true,
+          "value": 0,
+          "threshold": 0,
+          "detail": ""
+        },
+        {
+          "name": "valid_provenance",
+          "passed": true,
+          "value": 1.0,
+          "threshold": 0.0,
+          "detail": ""
+        }
+      ]
+    },
+    "rolled_back": false
+  }
+]

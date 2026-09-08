@@ -1,0 +1,64 @@
+[
+  {
+    "version": 1,
+    "utc_timestamp": "2026-09-03T06:11:51Z",
+    "checkpoint_path": "artifacts/registry/demo_1788415868/champion_v1.pt",
+    "checkpoint_sha256": "cd89d2df704477dd3ac2364d72038af77db192b792c9b56882cac4703187d0b9",
+    "promotion_manifest": {
+      "version_label": "V2",
+      "round": 1,
+      "criteria": [
+        {
+          "name": "recent_performance",
+          "passed": true,
+          "value": -0.004,
+          "threshold": -0.02,
+          "detail": ""
+        },
+        {
+          "name": "historical_retention",
+          "passed": true,
+          "value": 0.0,
+          "threshold": -0.03,
+          "detail": ""
+        },
+        {
+          "name": "weak_region_recovery",
+          "passed": true,
+          "value": 0.0052,
+          "threshold": 0.0,
+          "detail": ""
+        },
+        {
+          "name": "calibration",
+          "passed": true,
+          "value": 0.0471,
+          "threshold": 0.05,
+          "detail": ""
+        },
+        {
+          "name": "failure_memory",
+          "passed": true,
+          "value": 1.0,
+          "threshold": 1.0,
+          "detail": ""
+        },
+        {
+          "name": "redteam",
+          "passed": true,
+          "value": 0,
+          "threshold": 0,
+          "detail": ""
+        },
+        {
+          "name": "valid_provenance",
+          "passed": true,
+          "value": 1.0,
+          "threshold": 0.0,
+          "detail": ""
+        }
+      ]
+    },
+    "rolled_back": false
+  }
+]

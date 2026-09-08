@@ -1,0 +1,14 @@
+[
+  {
+    "version": 1,
+    "utc_timestamp": "2026-09-04T19:16:50Z",
+    "checkpoint_path": "artifacts/registry/demo_1788549410/champion_v1.pt",
+    "checkpoint_sha256": "279e4166f2f8ae122f76bbe9808c722675035794ebfb69590426467a01db5d8b",
+    "promotion_manifest": {
+      "version_label": "V1",
+      "role": "initial_champion",
+      "note": "baseline champion registered before monitoring so later promotions have a rollback parent"
+    },
+    "rolled_back": false
+  }
+]

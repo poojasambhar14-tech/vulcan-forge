@@ -1,0 +1,36 @@
+seed: 42
+
+simulator:
+  num_routes: 3
+  history_len: 32
+  merchant_segments: ["micro", "smb", "enterprise"]
+  issuers: ["HDFC", "ICICI", "SBI", "AXIS", "KOTAK"]
+  device_classes: ["android", "ios", "web_desktop", "web_mobile"]
+  time_buckets: 24
+  geo_buckets: 6
+  behavior_policy:
+    exploration_rate: 0.20
+
+model:
+  size: tiny
+  d_model: 96
+  n_heads: 4
+  n_layers: 3
+  ffn_mult: 4
+  dropout: 0.1
+  history_len: 32
+
+pretrain:
+  mask_field_prob: 0.15
+  mask_event_prob: 0.10
+  batch_size: 64
+  lr: 3.0e-4
+  epochs: 3
+  weight_decay: 0.01
+  next_event_loss_weight: 0.2
+
+data:
+  n_transactions: 20000
+  train_frac: 0.70
+  val_frac: 0.15
+  test_frac: 0.15

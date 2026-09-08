@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Vulcan 2.0 — Self-Healing Payment Intelligence</title>
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #121722; --border: #232a3b; --text: #e6e9ef;
+    --muted: #8b93a7; --accent: #5eead4; --warn: #fbbf24; --bad: #f87171; --good: #34d399;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 28px 32px; border-bottom: 1px solid var(--border); }
+  header h1 { margin: 0; font-size: 22px; letter-spacing: 0.5px; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  main { padding: 24px 32px; display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .panel h2 { margin: 0 0 14px; font-size: 15px; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .pill.promote { background: rgba(52,211,153,0.15); color: var(--good); }
+  .pill.reject { background: rgba(248,113,113,0.15); color: var(--bad); }
+  .timeline { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .step { padding: 6px 10px; border-radius: 6px; font-size: 12px; background: #1a2130; border: 1px solid var(--border); }
+  .step.candidate { border-color: var(--warn); color: var(--warn); }
+  .muted { color: var(--muted); font-size: 12px; }
+  .error { color: var(--bad); font-size: 13px; }
+  code { background: #1a2130; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>VULCAN 2.0 — Self-Healing Payment Intelligence</h1>
+  <p>Research-scale prototype. All numbers below are read live from <code>artifacts/runs/*.json</code> via the FastAPI backend — nothing on this page is hardcoded.</p>
+  <p><a href="/forge_control_room.html" style="color: var(--accent);">→ Open the Vulcan Forge Control Room (live demo)</a></p>
+</header>
+<main>
+  <div class="panel">
+    <h2>Benchmark (latest run)</h2>
+    <div id="benchmark">Loading…</div>
+  </div>
+  <div class="panel">
+    <h2>DriftSafe incident (latest demo run)</h2>
+    <div id="drift">Loading…</div>
+  </div>
+  <div class="panel">
+    <h2>Champion / Challenger — Good candidate</h2>
+    <div id="good-challenger">Loading…</div>
+  </div>
+  <div class="panel">
+    <h2>Champion / Challenger — Bad candidate</h2>
+    <div id="bad-challenger">Loading…</div>
+  </div>
+  <div class="panel">
+    <h2>Model Registry</h2>
+    <div id="registry">Loading…</div>
+  </div>
+  <div class="panel">
+    <h2>Pretraining (latest run)</h2>
+    <div id="pretrain">Loading…</div>
+  </div>
+</main>
+
+<script>
+async function getJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+  return res.json();
+}
+
+function fmt(x, digits=4) {
+  return (typeof x === "number") ? x.toFixed(digits) : x;
+}
+
+async function loadBenchmark() {
+  const el = document.getElementById("benchmark");
+  try {
+    const run = await getJSON("/api/benchmark/latest");
+    const rows = Object.entries(run.summary).map(([name, m]) => `
+      <tr>
+        <td>${name}</td>
+        <td>${fmt(m.success.mean)} ± ${fmt(m.success.ci95)}</td>
+        <td>${fmt(m.regret.mean)} ± ${fmt(m.regret.ci95)}</td>
+        <td>${fmt(m.latency_p95, 1)} ms</td>
+        <td>${fmt(m.abandon.mean)}</td>
+      </tr>`).join("");
+    el.innerHTML = `
+      <table>
+        <thead><tr><th>Policy</th><th>Success rate</th><th>Mean regret</th><th>p95 latency</th><th>Abandon rate</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p class="muted">seeds=${JSON.stringify(run.seeds)}, ${run.n_eval_steps_per_seed} steps/seed, run_id=${run.run_id}</p>`;
+  } catch (e) {
+    el.innerHTML = `<p class="error">${e.message}. Run <code>python -m scripts.benchmark</code> first.</p>`;
+  }
+}
+
+async function loadDrift() {
+  const el = document.getElementById("drift");
+  try {
+    const run = await getJSON("/api/drift/latest");
+    el.innerHTML = `
+      <div class="timeline">
+        <span class="step">NORMAL TRAFFIC</span>
+        <span class="step">SHOCK INJECTED</span>
+        <span class="step candidate">DETECTED @ window ${run.drift_detected_at_window}</span>
+        <span class="step candidate">ADAPTATION_CANDIDATE</span>
+      </div>
+      <p class="muted">run_id=${run.run_id}, seed=${run.seed}</p>`;
+    document.getElementById("good-challenger").innerHTML = renderChallenger(run.good_challenger);
+    document.getElementById("bad-challenger").innerHTML = renderChallenger(run.bad_challenger);
+  } catch (e) {
+    el.innerHTML = `<p class="error">${e.message}. Run <code>python -m scripts.demo_part3</code> first.</p>`;
+    document.getElementById("good-challenger").innerHTML = "—";
+    document.getElementById("bad-challenger").innerHTML = "—";
+  }
+}
+
+function renderChallenger(c) {
+  const se = c.shadow_eval;
+  const pillClass = se.decision === "PROMOTE" ? "promote" : "reject";
+  const reasons = se.reasons.map(r => `<li>${r}</li>`).join("");
+  return `
+    <p><span class="pill ${pillClass}">${se.decision}</span>
+       <span class="muted">${c.manifest.n_trainable_parameters.toLocaleString()} trainable params
+       (${c.manifest.pct_trainable_of_backbone}% of backbone), replay=${c.manifest.used_replay_buffer}</span></p>
+    <ul class="muted">${reasons}</ul>`;
+}
+
+async function loadRegistry() {
+  const el = document.getElementById("registry");
+  try {
+    const reg = await getJSON("/api/registry");
+    if (!reg.entries.length) { el.innerHTML = `<p class="muted">No promoted models yet.</p>`; return; }
+    const rows = reg.entries.map(e => `
+      <tr>
+        <td>v${e.version}</td>
+        <td>${e.utc_timestamp}</td>
+        <td><code>${e.checkpoint_sha256.slice(0,12)}…</code></td>
+        <td>${e.rolled_back ? '<span class="pill reject">ROLLED BACK</span>' : '<span class="pill promote">ACTIVE</span>'}</td>
+      </tr>`).join("");
+    el.innerHTML = `<table><thead><tr><th>Version</th><th>Promoted at</th><th>Checkpoint</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) {
+    el.innerHTML = `<p class="error">${e.message}</p>`;
+  }
+}
+
+async function loadPretrain() {
+  const el = document.getElementById("pretrain");
+  try {
+    const run = await getJSON("/api/pretrain/latest");
+    const fm = run.final_metrics;
+    el.innerHTML = `
+      <table>
+        <tr><th>Masked categorical acc (val)</th><td>${fmt(fm.val_masked_cat_acc)}</td></tr>
+        <tr><th>Continuous MSE (val)</th><td>${fmt(fm.val_continuous_mse)}</td></tr>
+        <tr><th>Next-event acc (val)</th><td>${fmt(fm.val_next_event_acc)}</td></tr>
+        <tr><th>Parameters</th><td>${run.n_parameters.toLocaleString()}</td></tr>
+        <tr><th>Checkpoint SHA256</th><td><code>${run.model_checkpoint_sha256.slice(0,16)}…</code></td></tr>
+      </table>`;
+  } catch (e) {
+    el.innerHTML = `<p class="error">${e.message}</p>`;
+  }
+}
+
+loadBenchmark();
+loadDrift();
+loadRegistry();
+loadPretrain();
+</script>
+</body>
+</html>

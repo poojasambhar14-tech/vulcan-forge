@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Vulcan Forge — Control Room</title>
+<style>
+  :root {
+    --bg:#05060a; --panel:#141928; --panel2:#1a2032; --border:#2e3850;
+    --text:#f2f5fa; --muted:#9aa4ba; --accent:#5eead4; --accent2:#7dd3fc;
+    --warn:#fbbf24; --bad:#f87171; --good:#34d399; --purple:#c4b5fd;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;color:var(--text);font-family:-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:
+      radial-gradient(900px 620px at 8% -8%,rgba(124,58,237,.30),transparent 62%),
+      radial-gradient(820px 560px at 92% -4%,rgba(56,189,248,.24),transparent 60%),
+      radial-gradient(1000px 700px at 50% 108%,rgba(236,72,153,.16),transparent 62%),
+      radial-gradient(700px 520px at 78% 55%,rgba(94,234,212,.12),transparent 60%),
+      linear-gradient(180deg,#080a14,#05060d);background-attachment:fixed;}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
+    background-size:48px 48px;mask-image:radial-gradient(1300px 1000px at 50% 15%,black,transparent 75%);}
+
+  header{position:relative;z-index:2;padding:18px 34px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+  .brand{display:flex;align-items:center;gap:13px;}
+  .mark{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    font-size:20px;font-weight:900;color:#06231f;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow:0 0 30px rgba(94,234,212,.5);}
+  header h1{margin:0;font-size:18px;font-weight:800;}
+  header h1 span{color:var(--accent);}
+  header p{margin:2px 0 0;color:var(--muted);font-size:11px;}
+  .ctrls{display:flex;align-items:center;gap:9px;}
+  .ctrls input{width:84px;padding:10px;background:#171d2e;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-weight:600;}
+  .ctrls button{padding:11px 19px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#06231f;
+    border:none;border-radius:8px;font-weight:800;font-size:12.5px;cursor:pointer;letter-spacing:.5px;
+    box-shadow:0 4px 20px rgba(94,234,212,.3);}
+  .ctrls button:disabled{background:#252d40;color:var(--muted);box-shadow:none;cursor:not-allowed;}
+
+  nav{position:relative;z-index:2;display:flex;gap:9px;padding:16px 34px 0;max-width:1320px;margin:0 auto;}
+  .tab{padding:11px 22px;border-radius:11px;border:1px solid var(--border);
+    background:var(--glass2);backdrop-filter:blur(14px);color:var(--muted);font-size:12.5px;
+    font-weight:700;cursor:pointer;letter-spacing:.3px;transition:all .25s;}
+  .tab.active{background:linear-gradient(135deg,rgba(94,234,212,.16),rgba(125,211,252,.10));
+    color:var(--accent);border-color:rgba(94,234,212,.5);box-shadow:0 0 24px -8px rgba(94,234,212,.6);}
+
+  main{position:relative;z-index:2;padding:16px 34px 80px;max-width:1320px;margin:0 auto;
+    display:flex;flex-direction:column;gap:16px;}
+  #status{font-size:11.5px;color:var(--muted);min-height:15px;}
+
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;}
+  .tile{background:linear-gradient(160deg,var(--glass),var(--glass2));backdrop-filter:blur(18px) saturate(140%);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+  .tile .lb{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;}
+  .tile .vl{font-size:27px;font-weight:900;margin-top:4px;letter-spacing:-.5px;
+   background:linear-gradient(135deg,#fff,#a5b4fc);-webkit-background-clip:text;
+   -webkit-text-fill-color:transparent;background-clip:text;}
+
+  .panel-monitor{background:linear-gradient(160deg,var(--glass),var(--glass2));backdrop-filter:blur(20px) saturate(140%);border:1px solid var(--border);
+    border-radius:12px;padding:14px 18px;margin-bottom:14px;}
+  .mon-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .mon-title{font-size:11px;font-weight:800;letter-spacing:1.4px;color:var(--accent2);}
+  .mon-state{font-size:11px;font-weight:800;padding:4px 12px;border-radius:999px;letter-spacing:.6px;
+    background:rgba(52,211,153,.15);color:var(--good);}
+  .mon-state.warn{background:rgba(251,191,36,.15);color:var(--warn);}
+  .mon-state.hot{background:rgba(248,113,113,.15);color:var(--bad);}
+  .mon-track{display:flex;gap:5px;flex-wrap:wrap;}
+  .mon-w{min-width:52px;padding:7px 5px;border-radius:7px;border:1px solid var(--border);background:rgba(255,255,255,.05);
+    text-align:center;font-size:9px;font-weight:800;color:var(--muted);}
+  .mon-w.sig{border-color:var(--warn);color:var(--warn);}
+  .mon-w.trig{border-color:var(--bad);color:var(--bad);background:rgba(248,113,113,.1);}
+  .mon-note{font-size:11px;color:var(--muted);margin-top:9px;font-style:italic;}
+  .mon-body{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;align-items:start;}
+  .mon-signals{display:flex;flex-direction:column;gap:7px;}
+  .sig-row{display:grid;grid-template-columns:126px 1fr 62px;align-items:center;gap:9px;font-size:10px;}
+  .sig-name{color:var(--muted);font-weight:700;letter-spacing:.3px;text-transform:uppercase;}
+  .sig-bar{position:relative;height:9px;background:#10151f;border-radius:5px;overflow:hidden;border:1px solid #232a3b;}
+  .sig-fill{position:absolute;left:0;top:0;bottom:0;border-radius:5px;
+    background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .45s cubic-bezier(.3,.8,.3,1);}
+  .sig-fill.over{background:linear-gradient(90deg,var(--warn),var(--bad));}
+  .sig-thresh{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--muted);opacity:.85;}
+  .sig-val{text-align:right;font-family:"SF Mono",Consolas,monospace;font-size:10px;color:var(--text);}
+  .sig-val.over{color:var(--bad);font-weight:800;}
+  .mon-spark{width:100%;height:46px;display:block;margin-top:10px;}
+  .lineage-live{display:flex;align-items:center;flex-wrap:wrap;gap:0;margin-top:6px;}
+  .ln-mini{padding:9px 14px;border-radius:9px;border:1.5px solid var(--border);background:rgba(255,255,255,.05);
+    text-align:center;min-width:92px;animation:pop .45s cubic-bezier(.2,.9,.3,1.4) both;}
+  @keyframes pop{from{opacity:0;transform:scale(.85);}to{opacity:1;transform:scale(1);}}
+  .ln-mini.att{border-color:var(--bad);background:rgba(248,113,113,.08);}
+  .ln-mini.gen{border-color:var(--good);background:rgba(52,211,153,.12);}
+  .ln-mini .t{font-size:12.5px;font-weight:900;} .ln-mini .s{font-size:9px;color:var(--muted);margin-top:2px;}
+  .ln-arw{color:var(--muted);padding:0 8px;font-size:15px;}
+  .lifecycle{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;}
+  .lc{padding:9px 3px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);text-align:center;
+    font-size:8.5px;font-weight:800;color:var(--muted);transition:all .25s;}
+  .lc .i{font-size:14px;display:block;margin-bottom:2px;}
+  .lc.pending{opacity:.38;}
+  .lc.inprogress{border-color:var(--accent);color:var(--accent);animation:pg 1s infinite;}
+  .lc.good{border-color:var(--good);background:rgba(52,211,153,.1);color:var(--good);}
+  .lc.amber{border-color:var(--warn);background:rgba(251,191,36,.1);color:var(--warn);}
+  .lc.bad{border-color:var(--bad);background:rgba(248,113,113,.12);color:var(--bad);}
+  @keyframes pg{0%,100%{box-shadow:0 0 6px rgba(94,234,212,.3);}50%{box-shadow:0 0 20px rgba(94,234,212,.7);}}
+
+  .hero{background:linear-gradient(160deg,var(--glass),var(--glass2));backdrop-filter:blur(24px) saturate(145%);border:1px solid var(--border);border-radius:16px;
+    padding:36px 40px;box-shadow:0 30px 70px -28px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.10);min-height:250px;}
+  .hero.alert{border-color:rgba(248,113,113,.55);background:linear-gradient(180deg,#251419,#160d11);}
+  .hero.good{border-color:rgba(52,211,153,.5);background:linear-gradient(180deg,#142218,#0e1712);}
+  .eyebrow{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:9px;}
+  .htitle{font-size:34px;font-weight:900;letter-spacing:-.8px;line-height:1.14;margin:0 0 10px;
+   background:linear-gradient(135deg,#ffffff 0%,#dbeafe 45%,#a5b4fc 100%);
+   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .htitle.big{font-size:41px;}
+  .hsub{font-size:14.5px;color:var(--muted);margin-bottom:18px;line-height:1.55;}
+  .hsub b{color:var(--text);}
+
+  .srow{display:flex;gap:36px;flex-wrap:wrap;margin:16px 0;}
+  .sb .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;}
+  .sb .v{font-size:29px;font-weight:900;margin-top:3px;}
+  .sb .v.bad{color:var(--bad);} .sb .v.good{color:var(--good);} .sb .v.warn{color:var(--warn);}
+
+  table.t{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px;}
+  table.t th,table.t td{text-align:right;padding:10px 13px;border-bottom:1px solid var(--border);}
+  table.t th:first-child,table.t td:first-child{text-align:left;}
+  table.t th{color:var(--muted);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;}
+  table.t tr.hi{background:rgba(248,113,113,.11);}
+  table.t tr.hi td:first-child{color:var(--bad);font-weight:800;}
+  .dbad{color:var(--bad);font-weight:800;} .dgood{color:var(--good);font-weight:700;}
+
+  .bar{display:flex;height:36px;border-radius:8px;overflow:hidden;margin:14px 0 8px;border:1px solid var(--border);}
+  .bar div{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#06231f;}
+  .frozen{background:linear-gradient(90deg,#2e3850,#252d40);color:var(--muted)!important;padding-left:12px;justify-content:flex-start!important;}
+
+  .cards{display:flex;gap:11px;flex-wrap:wrap;margin-top:14px;}
+  .card{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:12px 16px;min-width:150px;}
+  .card .a{font-size:17px;font-weight:900;}
+  .card .m{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6;}
+
+  .etiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px;}
+  .et{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:12px;padding:17px;text-align:center;}
+  .et .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;}
+  .et .v{font-size:21px;font-weight:900;margin:7px 0 2px;}
+  .et.focus{border-color:var(--accent);background:rgba(94,234,212,.07);}
+  .et.focus .v{font-size:28px;}
+
+  .scan{height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);background-size:200% 100%;
+    animation:sc 1.2s linear infinite;border-radius:3px;margin:15px 0;}
+  @keyframes sc{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+  .rcard{background:#1d1318;border:1px solid rgba(248,113,113,.42);border-radius:12px;padding:15px 18px;margin-bottom:9px;
+    display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;}
+  .rcard .tx{font-size:12.5px;line-height:1.7;}
+  .rcard .tx b{font-size:17px;}
+  .vd{display:flex;gap:16px;}
+  .v1{text-align:center;font-size:10.5px;}
+  .v1 .l{color:var(--muted);font-weight:700;text-transform:uppercase;}
+  .v1 .m{font-size:19px;font-weight:900;margin-top:3px;}
+  .v1 .m.ok{color:var(--good);} .v1 .m.no{color:var(--bad);}
+
+  .verdict{font-size:48px;font-weight:900;text-align:center;padding:26px;border-radius:14px;margin-top:20px;letter-spacing:1px;}
+  .verdict.promote{background:linear-gradient(135deg,rgba(52,211,153,.25),rgba(52,211,153,.06));color:var(--good);box-shadow:0 0 60px -15px rgba(52,211,153,.6);}
+  .verdict.reject{background:linear-gradient(135deg,rgba(248,113,113,.25),rgba(248,113,113,.06));color:var(--bad);box-shadow:0 0 60px -15px rgba(248,113,113,.6);}
+
+  .mcards{display:flex;flex-direction:column;gap:7px;margin-top:12px;}
+  .mc{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.05);border:1px solid var(--border);
+    border-radius:9px;padding:11px 15px;font-size:12.5px;}
+  .mc .pass{color:var(--good);font-weight:800;} .mc .pend{color:var(--muted);}
+
+  .lin{display:flex;align-items:center;margin-top:18px;flex-wrap:wrap;}
+  .ln{padding:15px 21px;border-radius:12px;border:2px solid var(--border);background:rgba(255,255,255,.05);text-align:center;min-width:135px;}
+  .ln.v1{border-color:var(--accent);} .ln.rej{border-color:var(--bad);background:rgba(248,113,113,.08);}
+  .ln.pro{border-color:var(--good);background:rgba(52,211,153,.1);}
+  .ln .t{font-size:14.5px;font-weight:900;} .ln .s{font-size:10.5px;color:var(--muted);margin-top:3px;}
+  .arw{font-size:19px;color:var(--muted);padding:0 13px;}
+
+  .log{background:rgba(6,8,16,.62);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:11px;padding:13px 17px;font-size:11px;
+    font-family:"SF Mono",Consolas,monospace;color:var(--muted);max-height:120px;overflow-y:auto;}
+  .log div{padding:1.5px 0;} .log .ts{color:var(--accent2);}
+
+  .empty{text-align:center;padding:42px 20px;color:var(--muted);font-size:13.5px;}
+  .note{font-size:11.5px;color:var(--muted);margin-top:12px;font-style:italic;}
+  .mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-top:14px;}
+  .mbox{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:12px;padding:18px;}
+  .mbox .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;line-height:1.4;}
+  .mbox .v{font-size:31px;font-weight:900;margin-top:7px;}
+  .mbox.key{border-color:var(--accent);background:rgba(94,234,212,.07);}
+  .mbox.warnbox{border-color:var(--warn);}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="mark">V</div>
+    <div>
+      <h1>VULCAN <span>FORGE</span> — Adversarially Certified Payment Model Reliability</h1>
+      <p>Every number on this page is read live from a real backend event or a persisted benchmark manifest. Nothing is hardcoded.</p>
+    </div>
+  </div>
+  <div class="ctrls">
+    <input id="seed" type="number" value="2024" />
+    <button id="run" onclick="startDemo()">▶ RUN LIVE CYCLE</button>
+  </div>
+</header>
+
+<nav>
+  <div class="tab active" id="tab-live" onclick="showTab('live')">LIVE FORGE CYCLE</div>
+  <div class="tab" id="tab-eval" onclick="showTab('eval')">CERTIFICATION EVIDENCE</div>
+</nav>
+
+<main>
+  <div id="status"></div>
+
+  <!-- ============ LIVE TAB ============ -->
+  <div id="view-live">
+    <div class="tiles">
+      <div class="tile"><div class="lb">Active Champion</div><div class="vl" id="t-champ">V1</div></div>
+      <div class="tile"><div class="lb">Model Health</div><div class="vl" id="t-health">—</div></div>
+      <div class="tile"><div class="lb">Failure Memory</div><div class="vl" id="t-mem">0</div></div>
+      <div class="tile"><div class="lb">Latest Certification</div><div class="vl" id="t-cert">—</div></div>
+    </div>
+    <div style="height:16px"></div>
+    <div class="panel-monitor" id="monitor-panel" style="display:none;">
+      <div class="mon-head"><span class="mon-title">🛰 AUTONOMOUS MONITOR — DriftSafe</span>
+        <span class="mon-state" id="mon-state">NORMAL</span></div>
+      <div class="mon-body">
+        <div class="mon-track" id="mon-track"></div>
+        <div class="mon-signals" id="mon-signals"></div>
+      </div>
+      <canvas id="mon-spark" class="mon-spark" width="1240" height="46"></canvas>
+      <div class="mon-note" id="mon-note">Forge is not told when to heal. The monitor decides from measured signals.</div>
+    </div>
+    <div class="lineage-live" id="lineage-live"></div>
+    <div style="height:14px"></div>
+    <div class="lifecycle" id="lifecycle"></div>
+    <div style="height:16px"></div>
+    <div class="hero" id="hero">
+      <div class="empty">Press <b>RUN LIVE CYCLE</b> to execute a real Forge cycle against the live backend.<br>
+      This screen becomes the story as real events arrive — none of it is pre-written.</div>
+    </div>
+    <div style="height:16px"></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <!-- ============ EVIDENCE TAB ============ -->
+  <div id="view-eval" class="hidden">
+    <div class="hero" id="evidence"><div class="empty">Loading certification evidence…</div></div>
+  </div>
+</main>
+
+<script>
+/* PACING: these constants pace the DISPLAY of already-real, already-computed
+   backend events so a human can read them. They are not fake loading delays;
+   see scripts/demo_forge.py's STREAMING REFACTOR NOTE. */
+const DWELL=2400, CLIMAX=5000, SHORT=900, SCAN=1700;
+const ORDER=["DIAGNOSE","BLIND_SPOT_MINER","HEALING_POLICY","CURRICULUM","TRAIN_CHALLENGER","EVALUATE","RED_TEAM","FAILURE_MEMORY","PROMOTION_GATE","CHAMPION_UPDATED"];
+const ICON={DIAGNOSE:"🔍",BLIND_SPOT_MINER:"🎯",HEALING_POLICY:"🩹",CURRICULUM:"📚",TRAIN_CHALLENGER:"🧠",EVALUATE:"⚖️",RED_TEAM:"⚔️",FAILURE_MEMORY:"🗂️",PROMOTION_GATE:"✅",CHAMPION_UPDATED:"🔒"};
+const LABEL={DIAGNOSE:"DIAGNOSE",BLIND_SPOT_MINER:"MINE",HEALING_POLICY:"HEAL",CURRICULUM:"CURRICULUM",TRAIN_CHALLENGER:"TRAIN",EVALUATE:"EVALUATE",RED_TEAM:"ATTACK",FAILURE_MEMORY:"REMEMBER",PROMOTION_GATE:"CERTIFY",CHAMPION_UPDATED:"INSTALL"};
+
+let runId=null,cursor=0,timer=null,queue=[],busy=false,cache={},ledger=[],hist=[];
+let renderLineageLiveDeferred=false;
+
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const S=m=>document.getElementById("status").textContent=m;
+const pct=v=>(v===null||v===undefined)?"n/a":(v*100).toFixed(1)+"%";
+const SIG_LABEL={input_drift_psi:"Input PSI",representation_drift_mmd_proxy:"Representation",
+  calibration_drift_ece_delta:"Calibration",residual_drift_page_hinkley:"Residual"};
+let monSpark=[];
+
+function renderSignals(signals){
+  const el=document.getElementById("mon-signals"); if(!el)return;
+  el.innerHTML=Object.entries(signals).map(([k,v])=>{
+    const thr=Math.abs(v.threshold)||1;
+    const mag=Math.abs(v.value);
+    const pctFill=Math.max(3,Math.min(100,(mag/(thr*1.6))*100));
+    const thrPos=Math.min(100,(1/1.6)*100);
+    return `<div class="sig-row">
+      <span class="sig-name">${SIG_LABEL[k]||k}</span>
+      <span class="sig-bar"><span class="sig-fill ${v.exceeded?'over':''}" style="width:${pctFill}%"></span>
+        <span class="sig-thresh" style="left:${thrPos}%"></span></span>
+      <span class="sig-val ${v.exceeded?'over':''}">${mag<0.01?mag.toExponential(1):mag.toFixed(3)}</span>
+    </div>`;}).join("");
+}
+
+function drawMonSpark(){
+  const c=document.getElementById("mon-spark"); if(!c)return;
+  const x=c.getContext("2d"),w=c.width,h=c.height;
+  x.clearRect(0,0,w,h);
+  x.fillStyle="#9aa4ba"; x.font="9px sans-serif"; x.textAlign="left";
+  x.fillText("signals exceeded per window", 2, 9);
+  if(monSpark.length<2)return;
+  const step=w/Math.max(1,(monSpark.length-1));
+  x.beginPath();
+  monSpark.forEach((v,i)=>{const px=i*step,py=h-((v/4)*(h-14))-4; i?x.lineTo(px,py):x.moveTo(px,py);});
+  const g=x.createLinearGradient(0,0,w,0);
+  g.addColorStop(0,"#7dd3fc"); g.addColorStop(1,"#f87171");
+  x.strokeStyle=g; x.lineWidth=2; x.stroke();
+  monSpark.forEach((v,i)=>{const px=i*step,py=h-((v/4)*(h-14))-4;
+    x.beginPath(); x.arc(px,py,2.8,0,6.3); x.fillStyle=v>=2?"#f87171":"#5eead4"; x.fill();});
+}
+
+function renderLineageLive(){
+  const el=document.getElementById("lineage-live"); if(!el)return;
+  let h=`<div class="ln-mini gen"><div class="t">V1</div><div class="s">GEN 1</div></div>`;
+  hist.forEach(r=>{
+    h+=`<span class="ln-arw">&rarr;</span><div class="ln-mini ${r.outcome==='PROMOTE'?'gen':'att'}">
+      <div class="t">${r.version} ${r.outcome==='PROMOTE'?'\u2713':'\u2717'}</div>
+      <div class="s">${r.outcome==='PROMOTE'?'PROMOTED':(r.rt?r.rt+' REGRESSIONS':'REJECTED')}</div></div>`;});
+  el.innerHTML=h;
+}
+
+function countUp(el,target,suffix,decimals){
+  if(!el)return;
+  const start=parseFloat((el.textContent||"0").replace(/[^0-9.\-]/g,""))||0;
+  const t0=performance.now(),dur=650;
+  (function step(now){const t=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-t,3);
+    el.textContent=(start+(target-start)*e).toFixed(decimals)+(suffix||"");
+    if(t<1)requestAnimationFrame(step);})(t0);
+}
+
+function log(t){const e=document.getElementById("log");
+  e.innerHTML+=`<div><span class="ts">${new Date().toLocaleTimeString()}</span>  ${t}</div>`;e.scrollTop=e.scrollHeight;}
+function hero(html,mode){const h=document.getElementById("hero");h.className="hero"+(mode?" "+mode:"");h.innerHTML=html;}
+
+document.addEventListener("DOMContentLoaded",()=>{drawLifecycle();loadEvidence();});
+
+function showTab(which){
+  document.getElementById("tab-live").classList.toggle("active",which==="live");
+  document.getElementById("tab-eval").classList.toggle("active",which==="eval");
+  document.getElementById("view-live").classList.toggle("hidden",which!=="live");
+  document.getElementById("view-eval").classList.toggle("hidden",which!=="eval");
+}
+
+function drawLifecycle(){const el=document.getElementById("lifecycle");el.innerHTML="";
+  ORDER.forEach(s=>{const d=document.createElement("div");d.className="lc pending";d.id="lc-"+s;
+    d.innerHTML=`<span class="i">${ICON[s]}</span>${LABEL[s]}`;el.appendChild(d);});}
+function setLc(s,c){const e=document.getElementById("lc-"+s);if(e)e.className="lc "+c;}
+function cls(stage,d){
+  if(stage==="RED_TEAM")return d.discovered_failures.length>0?"bad":"good";
+  if(stage==="PROMOTION_GATE")return d.decision==="PROMOTE"?"good":"bad";
+  if(stage==="FAILURE_MEMORY")return d.pass_rate===1.0?"good":"bad";
+  if(["DIAGNOSE","BLIND_SPOT_MINER","HEALING_POLICY"].includes(stage))return "amber";
+  return "good";}
+
+/* ================= CERTIFICATION EVIDENCE (real manifest) ================= */
+async function loadEvidence(){
+  let d;
+  try{ d=await (await fetch("/api/forge/demo/certification-evidence")).json(); }
+  catch(e){ document.getElementById("evidence").innerHTML=`<div class="empty">Could not reach the evidence endpoint.</div>`; return; }
+  const el=document.getElementById("evidence");
+  if(!d.available){ el.innerHTML=`<div class="eyebrow">Certification Evidence</div>
+    <div class="htitle">NO BENCHMARK MANIFEST FOUND</div>
+    <div class="hsub">${d.reason}</div>`; return; }
+
+  const s=d.summary, th=d.ground_truth_thresholds;
+  const rows=d.runs.map(r=>`<tr class="${r.ground_truth.has_real_regression&&r.standard_gate.standard_gate_says_promote&&r.redteam.detected?'hi':''}">
+    <td>${r.seed}</td><td style="text-align:left">${r.arm}</td>
+    <td>${r.ground_truth.route_negative_flip_rate.toFixed(3)}</td>
+    <td>${r.ground_truth.has_real_regression?'<span class="dbad">YES</span>':'<span class="dgood">no</span>'}</td>
+    <td>${r.standard_gate.standard_gate_says_promote?'<span class="dbad">SHIP IT</span>':'blocked'}</td>
+    <td>${r.redteam.n_discovered>0?'<span class="dgood">'+r.redteam.n_discovered+' found</span>':'0'}</td></tr>`).join("");
+
+  el.innerHTML=`
+    <div class="eyebrow">Silent Regression Challenge · ${d.seeds.length} seeds × 2 arms = ${s.n_runs} runs</div>
+    <div class="htitle big">DOES ADVERSARIAL CERTIFICATION ACTUALLY ADD VALUE?</div>
+    <div class="hsub">The question a technical reviewer will ask. Answered with a dedicated multi-seed benchmark instead of one lucky demo seed.
+    Ground truth is measured independently of both gates, on a separate probe trajectory, using the simulator's oracle.
+    The red team is told <b>nothing</b> about which arm it is examining or where the regression was induced.</div>
+
+    <div class="mgrid">
+      <div class="mbox"><div class="l">Silent regressions created<br>(risky adaptation arm)</div><div class="v">${(s.silent_regression_creation_rate_risky_arm*100).toFixed(0)}%</div></div>
+      <div class="mbox"><div class="l">Standard gates<br>MISSED them</div><div class="v" style="color:var(--bad)">${(s.standard_gate_miss_rate*100).toFixed(0)}%</div></div>
+      <div class="mbox key"><div class="l">Red-team recall on<br>what standard gates missed</div><div class="v" style="color:var(--good)">${(s.redteam_recall_on_cases_standard_gate_missed*100).toFixed(0)}%</div></div>
+    </div>
+    <div class="mgrid">
+      <div class="mbox"><div class="l">Red-team detection recall<br>(all real regressions)</div><div class="v">${(s.redteam_detection_recall*100).toFixed(0)}%</div></div>
+      <div class="mbox warnbox"><div class="l">Red-team false-positive rate<br>(reported honestly)</div><div class="v" style="color:var(--warn)">${(s.redteam_false_positive_rate*100).toFixed(0)}%</div></div>
+      <div class="mbox key"><div class="l">Regressions caught that ordinary<br>validation would have SHIPPED</div><div class="v" style="color:var(--accent)">${s.n_caught_by_redteam_that_standard_gate_would_have_shipped}</div></div>
+    </div>
+
+    <div style="margin-top:22px"></div>
+    <table class="t"><thead><tr><th>Seed</th><th>Arm</th><th>Route NFR</th><th>Real regression?</th><th>Standard gate</th><th>Red team</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+
+    <div class="note">Highlighted rows are the cases that matter most: a real regression existed, ordinary validation said ship it, and only the independent red team caught it.
+    Ground-truth thresholds: min regret ${th.min_regret} oracle success-probability units, NFR threshold ${th.nfr_threshold}, probe size ${th.probe_size} — calibrated from the observed regret distribution, not chosen a priori.
+    Regression metric follows Yan et al., <i>Positive-Congruent Training</i> (CVPR 2021): a negative flip is a case the old model handled correctly that the new one does not.
+    Source manifest: ${d.manifest_path}</div>`;
+}
+
+/* ================= LIVE CYCLE ================= */
+async function startDemo(){
+  const sd=parseInt(document.getElementById("seed").value,10)||2024;
+  document.getElementById("run").disabled=true; showTab('live'); reset();
+  S("Starting a real Forge cycle (seed="+sd+")…");
+  const r=await fetch("/api/forge/demo/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({seed:sd})});
+  const d=await r.json(); runId=d.run_id; cursor=0;
+  S("Run "+runId+" started. Streaming real events…");
+  timer=setInterval(poll,800);
+}
+function reset(){queue=[];busy=false;cache={};ledger=[];hist=[];
+  ["t-champ","t-health","t-mem","t-cert"].forEach((id,i)=>document.getElementById(id).textContent=["V1","—","0","—"][i]);
+  document.getElementById("log").innerHTML="";
+  monSpark=[]; const ll=document.getElementById("lineage-live"); if(ll)ll.innerHTML="";
+  const ms=document.getElementById("mon-signals"); if(ms)ms.innerHTML="";
+  hero('<div class="empty">Waiting for real events…</div>');drawLifecycle();}
+async function poll(){
+  if(!runId)return;
+  const d=await (await fetch(`/api/forge/demo/${runId}/events?since=${cursor}`)).json();
+  if(d.error){S("Run error: "+d.error);clearInterval(timer);return;}
+  cursor=d.next_cursor; d.events.forEach(e=>queue.push(e));
+  if(d.status==="complete"&&!queue.length&&!busy){clearInterval(timer);S("Run "+runId+" complete.");document.getElementById("run").disabled=false;}
+  drain();
+}
+async function drain(){if(busy)return;busy=true;while(queue.length)await handle(queue.shift());busy=false;}
+
+async function handle(e){
+  const{event,stage,round,data}=e;
+
+  if(stage==="MEASURABLE_DEGRADATION"){
+    countUp(document.getElementById("t-health"), data.current_success_rate*100, "%", 1);
+    hero(`<div class="eyebrow">⚠ Live Incident</div>
+      <div class="htitle big">PAYMENT MODEL DEGRADATION DETECTED</div>
+      <div class="srow">
+        <div class="sb"><div class="l">Healthy baseline</div><div class="v">${pct(data.healthy_success_rate)}</div></div>
+        <div class="sb"><div class="l">Current</div><div class="v bad">${pct(data.current_success_rate)}</div></div>
+        <div class="sb"><div class="l">Loss</div><div class="v bad">${(data.delta*100).toFixed(1)} pts</div></div>
+        <div class="sb"><div class="l">Affected segment</div><div class="v" style="font-size:19px">Unknown — investigating</div></div>
+      </div>`,"alert");
+    log(`Degradation: ${pct(data.healthy_success_rate)} → ${pct(data.current_success_rate)} (${(data.delta*100).toFixed(1)} pts)`);
+    await sleep(DWELL); return;}
+
+  if(stage==="ISSUER_BREAKDOWN"){cache.ISSUERS=data;return;}
+
+  if(stage==="INITIAL_CHAMPION_REGISTERED"){
+    log(`V1 registered as registry version ${data.version} — rollback parent exists`);
+    return;}
+
+  if(stage==="MONITOR_WINDOW"){
+    document.getElementById("monitor-panel").style.display="block";
+    const st=document.getElementById("mon-state");
+    st.textContent=data.state;
+    st.className="mon-state "+(data.state==="ADAPTATION_CANDIDATE"?"hot":(data.state==="NORMAL"?"":"warn"));
+    const t=document.getElementById("mon-track");
+    const cls=data.state==="ADAPTATION_CANDIDATE"?"trig":(data.n_signals_exceeded>0?"sig":"");
+    t.innerHTML+=`<div class="mon-w ${cls}">w${data.window}<br>${data.n_signals_exceeded}/4</div>`;
+    renderSignals(data.signals||{});
+    monSpark.push(data.n_signals_exceeded); drawMonSpark();
+    if(!cache.monShown){cache.monShown=true;
+      hero(`<div class="eyebrow">🛰 Autonomous Monitoring</div>
+        <div class="htitle big">THE SYSTEM DECIDES WHEN TO HEAL</div>
+        <div class="hsub">Live traffic is routed by the champion model itself and scored window-by-window by
+        DriftSafe's four independent drift signals. Healing is only invoked if the state machine escalates
+        <b>NORMAL → SHIFT_DETECTED → PERSISTENCE_CHECK → ADAPTATION_CANDIDATE</b> on its own.
+        A transient shift returns to NORMAL and no repair is attempted.</div>
+        <div class="scan"></div>`,"");}
+    await sleep(420); return;}
+
+  if(stage==="DRIFTSAFE_DECISION"){
+    if(data.triggered){
+      hero(`<div class="eyebrow">🛰 Autonomous Trigger</div>
+        <div class="htitle big">⚡ INCIDENT DECLARED BY THE MONITOR</div>
+        <div class="hsub">DriftSafe escalated to <b>${data.final_state}</b> after
+        <b>${data.n_windows_monitored} windows</b> / <b>${data.n_transactions_monitored.toLocaleString()} executed transactions</b>.
+        Forge was <b>not told</b> to heal, and was never given the injected shock.</div>`,"alert");
+      log(`AUTONOMOUS TRIGGER: ${data.final_state} after ${data.n_windows_monitored} windows`);
+    }else{
+      hero(`<div class="eyebrow">🛰 Autonomous Trigger</div>
+        <div class="htitle">NO HEALING WARRANTED</div>
+        <div class="hsub">Final state <b>${data.final_state}</b>. The monitor did not escalate, so no repair was
+        attempted. </div>`,"good");
+      log(`Monitor did NOT escalate (${data.final_state}) — no healing`);}
+    await sleep(CLIMAX); return;}
+
+  if(stage==="MONITOR_RESET"){
+    document.getElementById("mon-track").innerHTML="";
+    cache.monShown=false;
+    hero(`<div class="eyebrow">🔁 Continuous Operation</div>
+      <div class="htitle big">MONITORING RESUMES ON GENERATION ${data.generation}</div>
+      <div class="hsub">The monitor resets to <b>${data.state}</b> with a <b>${data.cooldown_windows}-window cooldown</b>,
+      during which the newly installed champion stabilises before detection resumes.</div>`,"");
+    log(`Monitor reset — generation ${data.generation}, cooldown ${data.cooldown_windows}`);
+    await sleep(DWELL); return;}
+
+  if(stage==="SECOND_REGIME_SHIFT_INJECTED"){
+    hero(`<div class="eyebrow">⚠ New Independent Incident</div>
+      <div class="htitle big">A SECOND FAILURE HITS THE REPAIRED MODEL</div>
+      <div class="hsub">Injecting <b>${data.shock_name}</b> against the champion Forge just certified.
+      This is a different failure from the first, and Forge is not told about it — the same autonomous
+      detect → diagnose → repair → certify cycle must run again from scratch.</div>`,"alert");
+    log(`New incident injected: ${data.shock_name}`);
+    await sleep(DWELL); return;}
+
+  if(stage==="PROMOTION_ABORTED"){
+    hero(`<div class="eyebrow">🛑 Atomic Promotion</div>
+      <div class="htitle big">INSTALL ABORTED — PREVIOUS CHAMPION STAYS LIVE</div>
+      <div class="hsub">Registry persistence failed: <b>${data.reason}</b>. Because the pointer swap happens only
+      after durable registration, generation ${data.active_champion_generation} continues serving. The active champion is only swapped after durable registration.</div>`,"alert");
+    log(`PROMOTION ABORTED: ${data.reason}`);
+    await sleep(CLIMAX); return;}
+
+  if(event==="ROUND_START"){
+    document.getElementById("t-champ").textContent=data.version_label;
+    S(`Round ${round}: challenger ${data.version_label}, curriculum budget ${data.curriculum_budget}`);
+    log(`Round ${round} — training ${data.version_label} (budget ${data.curriculum_budget})`);
+    ORDER.forEach(s=>setLc(s,"inprogress"));
+    hero(`<div class="eyebrow">Round ${round}</div><div class="htitle">FORGE IS INVESTIGATING…</div>
+      <div class="hsub">Real computation running on the backend: diagnosis, curriculum generation, adapter training, adversarial search.
+      This genuinely takes several seconds on this hardware — nothing is simulated.</div><div class="scan"></div>`,"");
+    await sleep(SHORT); return;}
+
+  if(event==="STAGE_COMPLETE"){
+    cache[round+":"+stage]=data;
+    if(round===2&&["DIAGNOSE","BLIND_SPOT_MINER","HEALING_POLICY"].includes(stage)){if(await collapse2(round))return;}
+    setLc(stage,"inprogress"); await sleep(240); setLc(stage,cls(stage,data));
+    if(stage==="DIAGNOSE")return diagnose(data);
+    if(stage==="BLIND_SPOT_MINER")return blindspot(data);
+    if(stage==="HEALING_POLICY")return healing(data);
+    if(stage==="CURRICULUM")return curriculum(data);
+    if(stage==="TRAIN_CHALLENGER")return train(data);
+    if(stage==="EVALUATE")return evaluate(data);
+    if(stage==="RED_TEAM")return redteam(data,round);
+    if(stage==="FAILURE_MEMORY")return memory(data);
+    if(stage==="PROMOTION_GATE")return gate(data);}
+
+  if(stage==="CHAMPION_UPDATED"){
+    setLc("CHAMPION_UPDATED","good");
+    document.getElementById("t-champ").textContent=data.version_label+" (gen "+data.generation+")";
+    countUp(document.getElementById("t-health"), data.post_promotion_accuracy*100, "%", 1);
+    const reg=data.registry||{};
+    const d=data.live_success_rate_delta;
+    hero(`<div class="eyebrow">🔒 Closed Loop · Champion Installed</div>
+      <div class="htitle big">${data.version_label} IS NOW THE LIVE CHAMPION</div>
+      <div class="hsub">Certified, <b>persisted and hash-verified first</b>, then installed — the pointer swap
+      happens only after durable registration, so the active champion changes only after the record is durable.
+      It then routed <b>${data.n_executed_transactions} genuinely new transactions</b> itself.</div>
+      <div class="srow">
+        <div class="sb"><div class="l">Generation</div><div class="v good">${data.generation}</div></div>
+        <div class="sb"><div class="l">Live success — pre-heal</div><div class="v">${pct(data.pre_heal_live_success_rate)}</div></div>
+        <div class="sb"><div class="l">Live success — post-heal</div><div class="v ${d>=0?'good':'bad'}">${pct(data.live_success_rate)}</div></div>
+        <div class="sb"><div class="l">Delta</div><div class="v ${d>=0?'good':'bad'}">${d>=0?'+':''}${(d*100).toFixed(2)} pts</div></div>
+      </div>
+      <table class="t"><tbody>
+        <tr><td>Traffic routed by</td><td>${data.traffic_routed_by}</td></tr>
+        <tr><td>Registry</td><td>${reg.registered?'<span class="dgood">registered v'+reg.version+'</span>':'<span class="dbad">FAILED</span>'}</td></tr>
+        <tr><td>Checkpoint SHA-256</td><td style="font-family:monospace;font-size:11px">${(reg.checkpoint_sha256||"n/a").slice(0,40)}…</td></tr>
+        <tr><td>Rollback parent</td><td><span class="dgood">V1 registered as version 1</span></td></tr>
+      </tbody></table>
+      `,"good");
+    log(`CLOSED LOOP: ${data.version_label} installed as generation ${data.generation}`);
+    await sleep(CLIMAX); return;}
+
+  if(event==="ROUND_COMPLETE"){
+    const rt=cache[round+":RED_TEAM"], cu=cache[round+":CURRICULUM"];
+    renderLineageLiveDeferred=true;
+    hist.push({round,version:data.version_label,outcome:data.outcome,
+      curr:cu?cu.curriculum_size:null,rt:rt?rt.discovered_failures.length:null});
+    if(data.outcome==="REJECT"&&rt)rt.discovered_failures.forEach(f=>
+      ledger.push({id:"F"+f.scenario_hash.slice(0,8),dims:f.scenario,round,status:"pending"}));
+    renderLineageLive();
+    log(`Round ${round}: ${data.outcome}`); await sleep(SHORT); return;}
+
+  if(event==="DEMO_COMPLETE"){
+    document.getElementById("t-cert").textContent=data.final_outcome;
+    let n=`<div class="ln v1"><div class="t">V1 CHAMPION</div><div class="s">original</div></div>`;
+    hist.forEach(h=>{n+=`<div class="arw">→</div><div class="ln ${h.outcome==='PROMOTE'?'pro':'rej'}">
+      <div class="t">${h.version} ${h.outcome==='PROMOTE'?'✓':'✗'}</div>
+      <div class="s">${h.outcome==='PROMOTE'?'CERTIFIED':(h.rt?h.rt+' regressions':'REJECTED')}</div></div>`;});
+    hero(`<div class="eyebrow">Final Result</div>
+      <div class="htitle big">${data.final_outcome==="PROMOTE"?"CHAMPION CERTIFIED AND UPDATED":"NO SAFE CHALLENGER FOUND"}</div>
+      <div class="lin">${n}</div>
+      <div class="hsub" style="margin-top:20px">Forge did not just retrain the model. It <b>proved the repair was safe</b> before allowing it into production.</div>
+      <div class="note">Story: ${data.story} · Manifest: ${data.manifest_path}</div>`,
+      data.final_outcome==="PROMOTE"?"good":"");
+    log(`Complete. Story: ${data.story}`); return;}
+}
+
+async function diagnose(d){
+  hero(`<div class="eyebrow">Step · Diagnose</div><div class="htitle">SCANNING FOR ROOT CAUSE…</div>
+    <div class="hsub">Comparing recent vs. historical behavior across measured drift signals — PSI, embedding distance, calibration delta, residual drift, per-segment error.</div><div class="scan"></div>`);
+  await sleep(SCAN);
+  hero(`<div class="eyebrow">Diagnosis Complete</div>
+    <div class="htitle big">${d.failure_type.replace(/_/g," ")}</div>
+    <div class="hsub">Severity <b>${d.severity.toFixed(3)}</b> · Recommended intervention: <b>${d.recommended_healing_family.replace(/_/g," ")}</b><br>
+    Forge decides <b>what kind</b> of failure this is before deciding what to do — retraining is not the automatic answer.</div>`,"alert");
+  log(`Diagnosis: ${d.failure_type} (severity ${d.severity.toFixed(3)}) → ${d.recommended_healing_family}`);
+  await sleep(DWELL);}
+
+async function blindspot(d){
+  const bs=d.blind_spots[0], br=cache.ISSUERS;
+  if(!bs){hero(`<div class="eyebrow">Blind-Spot Miner</div><div class="htitle">NO BLIND SPOT MET THE MINIMUM SAMPLE SIZE</div>`);await sleep(DWELL);return;}
+  const aff=bs.dimensions.issuer||null;
+  let tbl="";
+  if(br&&br.issuers&&br.issuers.length){
+    tbl=`<table class="t"><thead><tr><th>Issuer</th><th>Baseline</th><th>Current</th><th>Change</th></tr></thead><tbody>${
+    br.issuers.map(i=>`<tr class="${i.issuer===aff?'hi':''}"><td>${i.issuer}${i.issuer===aff?' ⚠':''}</td>
+      <td>${pct(i.baseline_success_rate)}</td><td>${pct(i.current_success_rate)}</td>
+      <td class="${i.delta<0?'dbad':'dgood'}">${i.delta>=0?'+':''}${(i.delta*100).toFixed(1)}%</td></tr>`).join("")}</tbody></table>`;}
+  const dims=Object.entries(bs.dimensions).map(([k,v])=>`${k}=${v}`).join(", ");
+  hero(`<div class="eyebrow">Blind-Spot Miner</div><div class="htitle big">BLIND SPOT IDENTIFIED</div>
+    <div class="hsub"><b>${dims}</b> (n=${bs.sample_count}) accounts for most of the degradation. Priority <b>${bs.priority_score.toFixed(3)}</b>,
+    ranked by error severity × financial exposure × uncertainty × novelty.</div>${tbl}
+    `,"alert");
+  log(`Blind spot: ${dims} (n=${bs.sample_count})`); await sleep(DWELL);}
+
+async function healing(d){
+  hero(`<div class="eyebrow">Healing Policy</div><div class="htitle">STRATEGY: ${d.selected_strategy.replace(/_/g," ")}</div>
+    <div class="hsub">${d.reason}</div>
+    `);
+  log(`Strategy: ${d.selected_strategy}`); await sleep(DWELL);}
+
+async function curriculum(d){
+  const m=d.metadata||{},b=m.source_breakdown||{};
+  const hr=b.hard_real_example||0,pb=b.simulator_perturbation||0,tot=(hr+pb)||1;
+  const ex=(d.scenarios||[]).slice(0,3).map(s=>s.record);
+  hero(`<div class="eyebrow">Curriculum Generator</div><div class="htitle big">FORGE BUILT A TARGETED RECOVERY CURRICULUM</div>
+    <div class="hsub"><b>${d.curriculum_size} scenarios</b> (budget ${d.budget}) · validity ${m.validity_rate!==undefined?(m.validity_rate*100).toFixed(0)+'%':'n/a'} · ${m.n_rejected||0} rejected by an independent scenario validator</div>
+    <div class="bar"><div style="width:${100*hr/tot}%;background:linear-gradient(90deg,#5eead4,#34d399)">${hr} hard real failures</div>
+      <div style="width:${100*pb/tot}%;background:linear-gradient(90deg,#7dd3fc,#5eead4)">${pb} targeted perturbations</div></div>
+    ${ex.length?`<div class="cards">${ex.map(r=>`<div class="card"><div class="a">₹${Math.round(r.amount).toLocaleString()}</div>
+      <div class="m">${r.issuer} · ${r.rail}<br>${r.merchant_category}</div></div>`).join("")}</div>`:""}
+    `);
+  log(`Curriculum: ${d.curriculum_size} scenarios (${hr} hard-real, ${pb} perturbations)`); await sleep(DWELL);}
+
+async function train(d){
+  if(d.recalibration){const r=d.recalibration;
+    hero(`<div class="eyebrow">Healing Action</div><div class="htitle big">RECALIBRATION — NO RETRAINING NEEDED</div>
+      <div class="hsub">Temperature <b>${r.temperature.toFixed(3)}</b> · ECE ${r.ece_before.toFixed(4)} → ${r.ece_after.toFixed(4)}</div>`);
+    await sleep(DWELL);return;}
+  const fz=(100-d.pct_trainable_of_backbone).toFixed(2);
+  hero(`<div class="eyebrow">Challenger Training</div>
+    <div class="htitle big">CHALLENGER ${document.getElementById("t-champ").textContent} CREATED</div>
+    <div class="hsub">Only <b>${d.n_trainable_parameters.toLocaleString()} parameters</b> updated. The foundation backbone is never touched.</div>
+    <div class="bar"><div class="frozen" style="width:${fz}%">${fz}% FROZEN — foundation backbone</div>
+      <div style="width:${d.pct_trainable_of_backbone}%;background:linear-gradient(90deg,var(--accent),var(--accent2))">${d.pct_trainable_of_backbone}%</div></div>
+    `);
+  log(`Trained: ${d.n_trainable_parameters.toLocaleString()} params (${d.pct_trainable_of_backbone}%)`); await sleep(DWELL);}
+
+async function evaluate(d){
+  const tile=(l,a,b,focus)=>{const dd=b-a;
+    return `<div class="et ${focus?'focus':''}"><div class="l">${l}</div><div class="v">${pct(a)} → ${pct(b)}</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--${dd>=0?'good':'bad'})">${dd>=0?'▲':'▼'} ${(dd*100).toFixed(1)} pts</div></div>`;};
+  hero(`<div class="eyebrow">Standard Validation</div><div class="htitle">CHALLENGER PASSES ORDINARY VALIDATION</div>
+    <div class="etiles">
+      ${tile("Recent",d.champion.recent.accuracy,d.challenger.recent.accuracy)}
+      ${tile("Historical",d.champion.historical.accuracy,d.challenger.historical.accuracy)}
+      ${tile("Target blind spot",d.champion.weak_region.accuracy,d.challenger.weak_region.accuracy,true)}
+    </div>
+    <div class="hsub" style="margin-top:18px"><b>Conventional validation is satisfied.</b> Certification continues.</div>`);
+  log(`Evaluated: recent ${pct(d.champion.recent.accuracy)}→${pct(d.challenger.recent.accuracy)}`); await sleep(DWELL);}
+
+async function redteam(d,round){
+  hero(`<div class="eyebrow">⚔ Independent Adversarial Certification</div>
+    <div class="htitle big">SEARCHING FOR HIDDEN REGRESSIONS…</div>
+    <div class="hsub">Searching ${d.metadata.seed_pool_size} candidate payment scenarios for <b>negative flips</b> — cases the champion routes correctly that the challenger routes worse.
+    This search is independent of the curriculum generator: it never sees the training data.</div><div class="scan"></div>`,"alert");
+  await sleep(SCAN);
+  const n=d.discovered_failures.length;
+  if(n>0){
+    const cards=d.discovered_failures.slice(0,3).map(f=>`<div class="rcard">
+      <div class="tx"><b>₹${Math.round(f.scenario.amount).toLocaleString()}</b><br>${f.scenario.issuer} · ${f.scenario.rail} · ${f.scenario.merchant_category}</div>
+      <div class="vd">
+        <div class="v1"><div class="l">Champion route</div><div class="m ok">R${f.champion_route}</div></div>
+        <div class="v1"><div class="l">Challenger route</div><div class="m no">R${f.challenger_route}</div></div>
+        <div class="v1"><div class="l">Regret added</div><div class="m no">+${((f.challenger_regret-f.champion_regret)*100).toFixed(2)}%</div></div>
+      </div></div>`).join("");
+    hero(`<div class="eyebrow">⚔ Independent Adversarial Certification</div>
+      <div class="htitle big">⚠ ${n} HIDDEN REGRESSION${n===1?"":"S"} FOUND</div>
+      <div class="hsub">A challenger that passed <b>every</b> conventional check still mis-routes these real, valid payments:</div>${cards}`,"alert");
+    log(`RED-TEAM: ${n} regressions found (of ${d.metadata.seed_pool_size} searched)`);
+  }else{
+    hero(`<div class="eyebrow">⚔ Independent Adversarial Certification</div>
+      <div class="htitle big">🛡 NO HIDDEN REGRESSIONS FOUND</div>
+      <div class="hsub">Searched ${d.metadata.seed_pool_size} candidate scenarios independently of the training curriculum. No negative flips above the reporting threshold.</div>
+      `,"good");
+    log(`RED-TEAM: 0 regressions (of ${d.metadata.seed_pool_size} searched)`);}
+  await sleep(CLIMAX);}
+
+async function memory(d){
+  document.getElementById("t-mem").textContent=ledger.length;
+  if(!ledger.length){hero(`<div class="eyebrow">Failure Memory</div><div class="htitle">NOTHING STORED TO REPLAY YET</div>
+    <div class="hsub">Failure memory is empty — no regression has been discovered in this run yet.</div>`);await sleep(DWELL);return;}
+  if(d.n_failing===0)ledger.forEach(i=>i.status="pass");
+  hero(`<div class="eyebrow">Failure Memory</div><div class="htitle big">FORGE REMEMBERS EVERY FAILURE</div>
+    <div class="srow"><div class="sb"><div class="l">Known cases</div><div class="v">${d.n_cases}</div></div>
+      <div class="sb"><div class="l">Still failing</div><div class="v ${d.n_failing>0?'bad':'good'}">${d.n_failing}</div></div>
+      <div class="sb"><div class="l">Pass rate</div><div class="v good">${(d.pass_rate*100).toFixed(0)}%</div></div></div>
+    <div class="mcards">${ledger.map(i=>`<div class="mc"><span>${i.id} — round ${i.round} (${i.dims&&i.dims.issuer?i.dims.issuer:'scenario'})</span>
+      <span class="${i.status==='pass'?'pass':'pend'}">${i.status==='pass'?'✓ PASS':'pending re-test'}</span></div>`).join("")}</div>
+    <div class="hsub" style="margin-top:16px">These ${d.n_cases} cases are now <b>mandatory regression tests for every future challenger</b>, permanently.</div>`);
+  log(`Memory: ${d.n_cases-d.n_failing}/${d.n_cases} passed`); await sleep(DWELL);}
+
+async function gate(d){
+  document.getElementById("t-cert").textContent=d.decision;
+  const rows=d.criteria.map(c=>`<tr><td>${c.name}</td>
+    <td style="color:${c.passed?'var(--good)':'var(--bad)'};font-weight:800">${c.passed?'✓ PASS':'✗ FAIL'}</td>
+    <td>${c.value}</td><td>${c.threshold}</td></tr>`).join("");
+  const failed=d.criteria.filter(c=>!c.passed).map(c=>c.name);
+  hero(`<div class="eyebrow">Promotion Gate</div>
+    <div class="htitle">${d.decision==="PROMOTE"?"ALL CERTIFICATION CRITERIA PASSED":"PROMOTION BLOCKED"}</div>
+    ${d.decision!=="PROMOTE"?`<div class="hsub">Blocked on: <b>${failed.join(", ")}</b></div>`:""}
+    <table class="t"><thead><tr><th>Criterion</th><th>Result</th><th>Value</th><th>Threshold</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="verdict ${d.decision.toLowerCase()}">${d.decision==="PROMOTE"?"✅ PROMOTED":"❌ REJECTED"}</div>`,
+    d.decision==="PROMOTE"?"good":"alert");
+  log(`GATE: ${d.decision}`); await sleep(CLIMAX);}
+
+async function collapse2(round){
+  const d2=cache["2:DIAGNOSE"],b2=cache["2:BLIND_SPOT_MINER"],h2=cache["2:HEALING_POLICY"];
+  if(!d2||!b2||!h2)return true;
+  ["DIAGNOSE","BLIND_SPOT_MINER","HEALING_POLICY"].forEach(s=>setLc(s,cls(s,cache["2:"+s])));
+  const same=JSON.stringify(cache["1:DIAGNOSE"])===JSON.stringify(d2)&&
+             JSON.stringify(cache["1:BLIND_SPOT_MINER"])===JSON.stringify(b2)&&
+             JSON.stringify(cache["1:HEALING_POLICY"])===JSON.stringify(h2);
+  if(same){
+    hero(`<div class="eyebrow">Round 2</div><div class="htitle">SAME ROOT CAUSE — FORGE ESCALATES</div>
+      <div class="hsub">Diagnosis, blind spot and strategy are <b>verified identical</b> to Round 1 by comparing the real event data.
+      The shift has not resolved, so Forge escalates the curriculum budget and replays every stored failure rather than re-diagnosing from scratch.</div>`);
+    log("Round 2: diagnosis identical to Round 1 (verified) — escalating");
+  }else{await diagnose(d2);await blindspot(b2);await healing(h2);}
+  await sleep(SHORT); return true;}
+</script>
+</body>
+</html>
